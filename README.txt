@@ -17,7 +17,7 @@ How to use
 ================================================================================
 
 !!! UPDATED GUIDE FOR BOOST 1.49:
-http://www.danielsefton.com/2012/03/building-boost-1-4-9-with-clang-ios-5-1-and-xcode-4-3
+http://www.danielsefton.com/2012/03/building-boost-1-49-with-clang-ios-5-1-and-xcode-4-3
 
 To use:
 - Download a Boost tarball from boost.org and save it in this directory
