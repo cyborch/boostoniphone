@@ -12,16 +12,17 @@
 #
 # To configure the script, define:
 #    BOOST_LIBS:        which libraries to build
-#    BOOST_VERSION:     version number of the boost library (e.g. 1_41_0)
-#    IPHONE_SDKVERSION: iPhone SDK version (e.g. 3.0)
+#    BOOST_VERSION:     version number of the boost library (e.g. 1_49_0)
+#    IPHONE_SDKVERSION: iPhone SDK version (e.g. 5.1)
 #
 # Then go get the source tar.bz of the boost you want to build, shove it in the
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-: ${BOOST_VERSION:=1_44_0}
+: ${BOOST_VERSION:=1_49_0}
 : ${BOOST_LIBS:="thread signals filesystem regex program_options system"}
-: ${IPHONE_SDKVERSION:=4.2}
+: ${IPHONE_SDKVERSION:=5.1}
+: ${XCODE_ROOT:=`xcode-select -print-path`}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS"}
 
 # The EXTRA_CPPFLAGS definition works around a thread race issue in
@@ -33,18 +34,19 @@
 # Should perhaps also consider/use instead: -BOOST_SP_USE_PTHREADS
 
 : ${TARBALLDIR:=`pwd`}
-: ${SRCDIR:=`pwd`/src}
-: ${BUILDDIR:=`pwd`/build}
-: ${PREFIXDIR:=`pwd`/prefix}
-: ${FRAMEWORKDIR:=`pwd`/framework}
+: ${SRCDIR:=`pwd`}
+: ${BUILDDIR:=`pwd`/ios/build}
+: ${PREFIXDIR:=`pwd`/ios/prefix}
+: ${FRAMEWORKDIR:=`pwd`/ios/framework}
+: ${COMPILER:="clang++"}
 
 BOOST_TARBALL=$TARBALLDIR/boost_$BOOST_VERSION.tar.bz2
     BOOST_SRC=$SRCDIR/boost_${BOOST_VERSION}
 
 #===============================================================================
 
-ARM_DEV_DIR=/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/
-SIM_DEV_DIR=/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/bin/
+ARM_DEV_DIR=$XCODE_ROOT/Platforms/iPhoneOS.platform/Developer/usr/bin/
+SIM_DEV_DIR=$XCODE_ROOT/Platforms/iPhoneSimulator.platform/Developer/usr/bin/
 
 ARM_COMBINED_LIB=$BUILDDIR/lib_boost_arm.a
 SIM_COMBINED_LIB=$BUILDDIR/lib_boost_x86.a
@@ -59,6 +61,8 @@ echo "BUILDDIR:          $BUILDDIR"
 echo "PREFIXDIR:         $PREFIXDIR"
 echo "FRAMEWORKDIR:      $FRAMEWORKDIR"
 echo "IPHONE_SDKVERSION: $IPHONE_SDKVERSION"
+echo "XCODE_ROOT:        $XCODE_ROOT"
+echo "COMPILER:          $COMPILER"
 echo
 
 #===============================================================================
@@ -85,10 +89,10 @@ doneSection()
 cleanEverythingReadyToStart()
 {
     echo Cleaning everything before we start to build...
-    rm -rf $BOOST_SRC
+    #rm -rf $BOOST_SRC
     rm -rf $BUILDDIR
     rm -rf $PREFIXDIR
-    rm -rf $FRAMEWORKDIR
+    rm -rf $FRAMEWORKDIR/$FRAMEWORK_NAME.framework
     doneSection
 }
 
@@ -112,13 +116,13 @@ writeBjamUserConfig()
     #mkdir -p $BUILDDIR
     #cat > ~/user-config.jam <<EOF
     cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
-using darwin : 4.2.1~iphone
-   : /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -arch armv7 -mthumb -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
+using darwin : ${IPHONE_SDKVERSION}~iphone
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/$COMPILER -arch armv7 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper>
    : <architecture>arm <target-os>iphone
    ;
-using darwin : 4.2.1~iphonesim
-   : /Developer/Platforms/iPhoneSimulator.platform/Developer/usr/bin/gcc-4.2 -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
+using darwin : ${IPHONE_SDKVERSION}~iphonesim
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/$COMPILER -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper>
    : <architecture>x86 <target-os>iphone
    ;
@@ -134,7 +138,7 @@ inventMissingHeaders()
     # They are supported on the device, so we copy them from x86 SDK to a staging area
     # to use them on ARM, too.
     echo Invent missing headers
-    cp /Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator${IPHONE_SDKVERSION}.sdk/usr/include/{crt_externs,bzlib}.h $BOOST_SRC
+    cp $XCODE_ROOT/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator${IPHONE_SDKVERSION}.sdk/usr/include/{crt_externs,bzlib}.h $BOOST_SRC
 }
 
 #===============================================================================
@@ -150,7 +154,7 @@ bootstrapBoost()
 
 #===============================================================================
 
-buildBoostForiPhoneOS_1_44_0()
+buildBoostForiPhoneOS_1_49_0()
 {
     cd $BOOST_SRC
     
@@ -169,8 +173,8 @@ lipoficate()
     : ${1:?}
     NAME=$1
     echo liboficate: $1
-    ARMV6=$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphone/release/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a
-    I386=$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphonesim/release/architecture-x86/link-static/macosx-version-iphonesim-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a
+    ARMV6=$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-${IPHONE_SDKVERSION}~iphone/release/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a
+    I386=$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-${IPHONE_SDKVERSION}~iphonesim/release/architecture-x86/link-static/macosx-version-iphonesim-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a
 
     mkdir -p $PREFIXDIR/lib
     lipo \
@@ -194,8 +198,8 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
     ALL_LIBS_ARM=""
     ALL_LIBS_SIM=""
     for NAME in $BOOST_LIBS; do
-        ALL_LIBS_ARM="$ALL_LIBS_ARM $BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphone/release/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a";
-        ALL_LIBS_SIM="$ALL_LIBS_SIM $BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphonesim/release/architecture-x86/link-static/macosx-version-iphonesim-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a";
+        ALL_LIBS_ARM="$ALL_LIBS_ARM $BOOST_SRC/bin.v2/libs/$NAME/build/darwin-${IPHONE_SDKVERSION}~iphone/release/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a";
+        ALL_LIBS_SIM="$ALL_LIBS_SIM $BOOST_SRC/bin.v2/libs/$NAME/build/darwin-${IPHONE_SDKVERSION}~iphonesim/release/architecture-x86/link-static/macosx-version-iphonesim-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a";
     done;
 
     mkdir -p $BUILDDIR/armv6/obj
@@ -207,9 +211,9 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
     echo Splitting all existing fat binaries...
     for NAME in $BOOST_LIBS; do
         ALL_LIBS="$ALL_LIBS libboost_$NAME.a"
-        lipo "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphone/release/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a" -thin armv6 -o $BUILDDIR/armv6/libboost_$NAME.a
-        lipo "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphone/release/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a" -thin armv7 -o $BUILDDIR/armv7/libboost_$NAME.a
-        cp "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphonesim/release/architecture-x86/link-static/macosx-version-iphonesim-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a" $BUILDDIR/i386/
+        lipo "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-${IPHONE_SDKVERSION}~iphone/release/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a" -thin armv6 -o $BUILDDIR/armv6/libboost_$NAME.a
+        lipo "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-${IPHONE_SDKVERSION}~iphone/release/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a" -thin armv7 -o $BUILDDIR/armv7/libboost_$NAME.a
+        cp "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-${IPHONE_SDKVERSION}~iphonesim/release/architecture-x86/link-static/macosx-version-iphonesim-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a" $BUILDDIR/i386/
     done
 
     echo "Decomposing each architecture's .a files"
@@ -309,13 +313,13 @@ EOF
 mkdir -p $BUILDDIR
 
 case $BOOST_VERSION in
-    1_44_0 )
+    1_49_0 )
         cleanEverythingReadyToStart
-        unpackBoost
+        #unpackBoost
         inventMissingHeaders
         writeBjamUserConfig
         bootstrapBoost
-        buildBoostForiPhoneOS_1_44_0
+        buildBoostForiPhoneOS_1_49_0
         scrunchAllLibsTogetherInOneLibPerPlatform
         lipoAllBoostLibraries
         buildFramework
@@ -328,4 +332,3 @@ esac
 echo "Completed successfully"
 
 #===============================================================================
-
