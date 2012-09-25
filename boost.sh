@@ -18,7 +18,7 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-: ${BOOST_LIBS:="thread signals filesystem regex program_options system"}
+: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
 : ${IPHONE_SDKVERSION:=6.0}
 : ${OSX_SDKVERSION:=10.8}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
