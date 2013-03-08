@@ -19,7 +19,7 @@
 #===============================================================================
 
 : ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
-: ${IPHONE_SDKVERSION:=6.0}
+: ${IPHONE_SDKVERSION:=6.1}
 : ${OSX_SDKVERSION:=10.8}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=c++11 -stdlib=libc++"}
